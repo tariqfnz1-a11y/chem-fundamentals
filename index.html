@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fundamentals of Chemistry — Interactive Notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#16221D;
+    --bg-panel:#1D2C26;
+    --bg-tile:#24362F;
+    --bg-tile-hi:#2C4038;
+    --chalk:#F4F1E8;
+    --chalk-dim:#B9C2BA;
+    --rule:rgba(244,241,232,0.14);
+    --rule-soft:rgba(244,241,232,0.08);
+    --yellow:#E8C468;
+    --coral:#E8785A;
+    --cyan:#6FC7C0;
+    --violet:#B29AD6;
+    --good:#8FCB8A;
+    --bad:#E8785A;
+    --radius:5px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--chalk);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(255,255,255,0.035), transparent 60%),
+      radial-gradient(ellipse at 90% 80%, rgba(255,255,255,0.03), transparent 55%);
+  }
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif; margin:0 0 .3em 0; font-weight:600;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .chalk-hand{font-family:'Caveat',cursive;}
+  a{color:var(--cyan);}
+
+  /* ---------- layout shells ---------- */
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+  section.topic{padding:64px 0 32px; border-top:1px dashed var(--rule);}
+  section.topic:first-of-type{border-top:none;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    padding:70px 0 50px;
+    position:relative;
+    overflow:hidden;
+    border-bottom:1px dashed var(--rule);
+  }
+  .hero-inner{display:flex; align-items:center; gap:40px; flex-wrap:wrap;}
+  .hero-text{flex:1 1 420px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--yellow); font-size:.75rem; margin-bottom:14px; display:block;}
+  .hero h1{font-size:clamp(2.1rem,4.5vw,3.3rem); line-height:1.08; max-width:640px;}
+  .hero p.lede{color:var(--chalk-dim); font-size:1.05rem; max-width:520px; margin-top:14px;}
+  .hero-tile-wrap{flex:0 0 auto;}
+
+  .tile{
+    background:var(--bg-tile);
+    border:1px solid var(--rule);
+    border-radius:var(--radius);
+    padding:14px 16px;
+    position:relative;
+    min-width:140px;
+  }
+  .tile .num{position:absolute; top:8px; left:10px; font-size:.68rem; font-family:'JetBrains Mono',monospace; color:var(--chalk-dim); opacity:.8;}
+  .tile .sym{font-family:'JetBrains Mono',monospace; font-size:2.4rem; font-weight:700; margin-top:10px; line-height:1;}
+  .tile .name{font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--chalk-dim); margin-top:6px;}
+  .tile .mass{font-size:.68rem; font-family:'JetBrains Mono',monospace; color:var(--chalk-dim); margin-top:2px;}
+  .tile.big{min-width:200px; padding:20px 22px;}
+  .tile.big .sym{font-size:3.4rem;}
+
+  /* ---------- nav ---------- */
+  nav.tabbar{
+    position:sticky; top:0; z-index:50;
+    background:rgba(22,34,29,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--rule);
+  }
+  .tabbar-inner{display:flex; gap:8px; overflow-x:auto; padding:10px 24px; max-width:1080px; margin:0 auto;}
+  .tab-tile{
+    flex:0 0 auto;
+    background:var(--bg-tile);
+    border:1px solid var(--rule);
+    border-radius:4px;
+    padding:6px 10px;
+    cursor:pointer;
+    text-align:left;
+    min-width:76px;
+    transition:transform .15s ease, border-color .15s ease;
+  }
+  .tab-tile:hover{transform:translateY(-2px);}
+  .tab-tile .num{font-size:.6rem; font-family:'JetBrains Mono',monospace; color:var(--chalk-dim); display:block;}
+  .tab-tile .code{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:1.1rem; display:block;}
+  .tab-tile.active{border-color:var(--accent,var(--yellow)); box-shadow:0 0 0 1px var(--accent,var(--yellow)) inset;}
+
+  /* ---------- topic header ---------- */
+  .topic-head{display:flex; gap:20px; align-items:flex-start; margin-bottom:32px; flex-wrap:wrap;}
+  .topic-head h2{font-size:1.9rem;}
+  .topic-head .deck{color:var(--chalk-dim); max-width:620px;}
+
+  /* ---------- grid ---------- */
+  .grid.two-col{display:grid; grid-template-columns:1fr 1fr; gap:28px;}
+  @media(max-width:860px){ .grid.two-col{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid var(--rule);
+    border-radius:var(--radius);
+    padding:22px;
+  }
+  .panel h3{font-size:1.02rem; margin-bottom:10px;}
+  .notes ul{padding-left:1.1em; margin:.5em 0;}
+  .notes li{margin-bottom:.4em;}
+
+  .callout{
+    border:1px dashed var(--rule);
+    border-radius:6px;
+    padding:12px 14px;
+    margin-top:16px;
+    position:relative;
+  }
+  .callout .tag{
+    font-family:'Caveat',cursive;
+    font-size:1.25rem;
+    display:inline-block;
+    margin-bottom:4px;
+  }
+  .callout.life .tag{color:var(--cyan);}
+  .callout.analogy .tag{color:var(--coral);}
+
+  /* ---------- sim controls ---------- */
+  .sim-panel label{display:block; font-size:.8rem; color:var(--chalk-dim); margin:14px 0 6px;}
+  .sim-panel input[type=range]{width:100%; accent-color:var(--accent,var(--yellow));}
+  .sim-panel input[type=number], .sim-panel select{
+    width:100%; padding:8px 10px; background:var(--bg-tile); border:1px solid var(--rule);
+    color:var(--chalk); border-radius:4px; font-family:'JetBrains Mono',monospace;
+  }
+  .sim-out{
+    margin-top:16px; background:var(--bg-tile); border-radius:4px; padding:14px;
+    font-family:'JetBrains Mono',monospace; font-size:.88rem; white-space:pre-wrap;
+  }
+  .sim-out .big-readout{font-size:1.3rem; color:var(--accent,var(--yellow)); font-weight:700;}
+  .btn{
+    background:var(--accent,var(--yellow)); color:#16221D; border:none; padding:9px 16px;
+    border-radius:4px; font-family:'Space Grotesk',sans-serif; font-weight:600; cursor:pointer;
+    margin-top:12px;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn.ghost{background:transparent; border:1px solid var(--rule); color:var(--chalk);}
+  .bar-row{display:flex; align-items:center; gap:10px; margin-top:8px;}
+  .bar-track{flex:1; height:14px; background:var(--bg); border-radius:8px; overflow:hidden; border:1px solid var(--rule);}
+  .bar-fill{height:100%; background:var(--accent,var(--yellow));}
+
+  /* branch flip tiles */
+  .branch-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px; margin-top:10px;}
+  .branch-tile{
+    background:var(--bg-tile); border:1px solid var(--rule); border-radius:6px; padding:12px;
+    cursor:pointer; min-height:110px; font-size:.8rem;
+  }
+  .branch-tile .b-name{font-family:'Space Grotesk',sans-serif; font-weight:600; color:var(--accent,var(--yellow));}
+  .branch-tile .b-detail{display:none; color:var(--chalk-dim); margin-top:6px; font-size:.76rem;}
+  .branch-tile.open .b-detail{display:block;}
+
+  /* quiz */
+  .quiz-panel{margin-top:28px;}
+  .qz-q{margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--rule-soft);}
+  .qz-q:last-of-type{border-bottom:none;}
+  .qz-q p.qtext{font-weight:600; margin-bottom:8px;}
+  .qz-opt{display:block; padding:8px 10px; border:1px solid var(--rule); border-radius:4px; margin-bottom:6px; cursor:pointer; font-size:.92rem;}
+  .qz-opt:hover{border-color:var(--accent,var(--yellow));}
+  .qz-opt.correct{border-color:var(--good); background:rgba(143,203,138,0.12);}
+  .qz-opt.wrong{border-color:var(--bad); background:rgba(232,120,90,0.12);}
+  .qz-exp{font-size:.82rem; color:var(--chalk-dim); margin-top:6px; display:none;}
+  .qz-exp.show{display:block;}
+  .qz-score{font-family:'JetBrains Mono',monospace; margin-top:10px; font-size:.95rem;}
+
+  footer{padding:50px 0 80px; text-align:center; color:var(--chalk-dim); font-size:.85rem;}
+
+  .molecule-svg{display:block; margin:0 auto;}
+  .legend-dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-inner">
+    <div class="hero-text">
+      <span class="eyebrow">Class IX · Chapter 1</span>
+      <h1>Fundamentals of Chemistry</h1>
+      <p class="lede">An interactive notebook — six ideas that everything else in chemistry is built on. Read the notes, play with the simulation, then check yourself with the quiz.</p>
+    </div>
+    <div class="hero-tile-wrap">
+      <div class="tile big">
+        <span class="num">001</span>
+        <div class="sym">Mo</div>
+        <div class="name">Mole</div>
+        <div class="mass">6.022 × 10²³</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar">
+  <div class="tabbar-inner" id="tabbar"></div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ SECTION 1: BRANCHES ============ -->
+  <section class="topic" id="sec-1" style="--accent:var(--yellow)">
+    <div class="topic-head">
+      <div class="tile"><span class="num">01</span><div class="sym">Br</div><div class="name">Branches</div></div>
+      <div>
+        <h2>Branches of Chemistry</h2>
+        <p class="deck">Chemistry is one subject wearing seven different hats, depending on what question you're asking.</p>
+      </div>
+    </div>
+    <div class="grid two-col">
+      <div class="panel notes">
+        <h3>Notes</h3>
+        <ul>
+          <li><b>Organic</b> — chemistry of carbon compounds (fuels, plastics, medicines)</li>
+          <li><b>Inorganic</b> — everything else: metals, minerals, salts</li>
+          <li><b>Physical</b> — energy, rates, and how/why reactions happen</li>
+          <li><b>Biochemistry</b> — chemistry happening inside living things</li>
+          <li><b>Industrial</b> — chemistry at factory scale</li>
+          <li><b>Nuclear</b> — reactions inside the atomic nucleus</li>
+          <li><b>Environmental</b> — chemistry of air, water and soil</li>
+        </ul>
+        <div class="callout analogy">
+          <span class="tag">✎ Think of it like…</span>
+          <p>…a hospital. The cardiologist, radiologist and dietician are all "doctors," but each looks at the same patient through a different lens. Organic, physical, nuclear chemists all look at the same matter — just through different questions.</p>
+        </div>
+        <div class="callout life">
+          <span class="tag">☕ Everyday life</span>
+          <p>Cooking dinner uses organic chemistry (the food) and physical chemistry (heat changes). An X-ray uses nuclear chemistry. A water filter uses environmental chemistry.</p>
+        </div>
+      </div>
+      <div class="panel sim-panel">
+        <h3>Tap a branch to reveal it</h3>
+        <div class="branch-grid" id="branchGrid"></div>
+        <p style="margin-top:16px; font-size:.85rem; color:var(--chalk-dim);">Match the scenario below to its branch:</p>
+        <div id="branchScenario" class="sim-out"></div>
+        <select id="branchAnswer" style="margin-top:8px;"></select>
+        <div><button class="btn" onclick="checkBranch()">Check</button> <button class="btn ghost" onclick="newBranchScenario()">New scenario</button></div>
+        <div id="branchFeedback" style="margin-top:10px; font-family:'JetBrains Mono',monospace; font-size:.85rem;"></div>
+      </div>
+    </div>
+    <div class="panel quiz-panel" id="quiz-1"></div>
+  </section>
+
+  <!-- ============ SECTION 2: ATOMS / MOLECULES / IONS ============ -->
+  <section class="topic" id="sec-2" style="--accent:var(--coral)">
+    <div class="topic-head">
+      <div class="tile"><span class="num">02</span><div class="sym">Am</div><div class="name">Atoms · Ions</div></div>
+      <div>
+        <h2>Atoms, Molecules &amp; Ions</h2>
+        <p class="deck">Three related building blocks — and the difference is all about counting particles and charge.</p>
+      </div>
+    </div>
+    <div class="grid two-col">
+      <div class="panel notes">
+        <h3>Notes</h3>
+        <ul>
+          <li><b>Atom</b> — smallest unit of an element that still behaves like that element</li>
+          <li><b>Molecule</b> — two or more atoms bonded together (same element, like O₂, or different, like H₂O)</li>
+          <li><b>Ion</b> — an atom (or group of atoms) that has gained or lost electrons, giving it a charge</li>
+          <li>Gain electrons → negative ion (<b>anion</b>). Lose electrons → positive ion (<b>cation</b>)</li>
+        </ul>
+        <div class="callout analogy">
+          <span class="tag">✎ Think of it like…</span>
+          <p>Lego bricks. One brick = an atom. Snap two identical bricks together = a molecule like O₂. Snap different bricks together = a molecule like H₂O. Now imagine a brick with a magnet stuck on (extra electron) or one magnet missing (lost electron) — that's an ion.</p>
+        </div>
+        <div class="callout life">
+          <span class="tag">☕ Everyday life</span>
+          <p>Table salt is made of Na⁺ and Cl⁻ ions. The oxygen you breathe is O₂ molecules. A gold ring is just a huge collection of gold atoms.</p>
+        </div>
+      </div>
+      <div class="panel sim-panel">
+        <h3>Build an atom</h3>
+        <label>Protons: <span class="mono" id="pVal">6</span></label>
+        <input type="range" id="pSlider" min="1" max="20" value="6">
+        <label>Neutrons: <span class="mono" id="nVal">6</span></label>
+        <input type="range" id="nSlider" min="0" max="22" value="6">
+        <label>Electrons: <span class="mono" id="eVal">6</span></label>
+        <input type="range" id="eSlider" min="0" max="20" value="6">
+        <svg class="molecule-svg" id="atomSvg" width="220" height="180" viewBox="0 0 220 180"></svg>
+        <div class="sim-out" id="atomOut"></div>
+      </div>
+    </div>
+    <div class="panel quiz-panel" id="quiz-2"></div>
+  </section>
+
+  <!-- ============ SECTION 3: ATOMIC MASS ============ -->
+  <section class="topic" id="sec-3" style="--accent:var(--cyan)">
+    <div class="topic-head">
+      <div class="tile"><span class="num">03</span><div class="sym">Am²</div><div class="name">Atomic Mass</div></div>
+      <div>
+        <h2>Atomic Mass Unit &amp; Relative Atomic Mass</h2>
+        <p class="deck">Why chlorine's atomic mass is 35.5 and not a whole number.</p>
+      </div>
+    </div>
+    <div class="grid two-col">
+      <div class="panel notes">
+        <h3>Notes</h3>
+        <ul>
+          <li><b>amu (u)</b> — a tiny unit of mass, defined as 1/12 the mass of one carbon-12 atom</li>
+          <li><b>Relative atomic mass</b> — average mass of an element's atoms, weighted by how common each isotope is</li>
+          <li><b>Relative molecular mass</b> — sum of relative atomic masses of all atoms in a molecule</li>
+        </ul>
+        <div class="callout analogy">
+          <span class="tag">✎ Think of it like…</span>
+          <p>The "average shoe size" of a classroom. If 75% of students wear size 8 and 25% wear size 9, the class average isn't a clean number — it's 8.25. Chlorine's 35.5 comes the same way: mostly Cl-35 atoms, with some heavier Cl-37 mixed in.</p>
+        </div>
+        <div class="callout life">
+          <span class="tag">☕ Everyday life</span>
+          <p>Any "average" you compute daily — average marks, average rainfall — works the same math as relative atomic mass.</p>
+        </div>
+      </div>
+      <div class="panel sim-panel">
+        <h3>Isotope mixer</h3>
+        <p style="font-size:.85rem;color:var(--chalk-dim);">Simulate chlorine: mix two isotopes and watch the average atomic mass change.</p>
+        <label>Isotope A mass number: <span class="mono" id="isoAMassVal">35</span></label>
+        <input type="range" id="isoAMass" min="30" max="40" value="35">
+        <label>Isotope B mass number: <span class="mono" id="isoBMassVal">37</span></label>
+        <input type="range" id="isoBMass" min="30" max="45" value="37">
+        <label>% abundance of Isotope A: <span class="mono" id="isoAbundVal">75</span>%</label>
+        <input type="range" id="isoAbund" min="0" max="100" value="75">
+        <div class="bar-row"><div style="width:70px;font-size:.75rem;">Isotope A</div><div class="bar-track"><div class="bar-fill" id="isoBarA" style="width:75%"></div></div></div>
+        <div class="bar-row"><div style="width:70px;font-size:.75rem;">Isotope B</div><div class="bar-track"><div class="bar-fill" id="isoBarB" style="width:25%;background:var(--coral)"></div></div></div>
+        <div class="sim-out" id="isoOut"></div>
+      </div>
+    </div>
+    <div class="panel quiz-panel" id="quiz-3"></div>
+  </section>
+
+  <!-- ============ SECTION 4: MOLE / AVOGADRO / MOLAR MASS+VOLUME ============ -->
+  <section class="topic" id="sec-4" style="--accent:var(--violet)">
+    <div class="topic-head">
+      <div class="tile"><span class="num">04</span><div class="sym">Mo</div><div class="name">Mole</div></div>
+      <div>
+        <h2>Avogadro's Number, Mole, Molar Mass &amp; Molar Volume</h2>
+        <p class="deck">A chemist's way of counting the uncountable.</p>
+      </div>
+    </div>
+    <div class="grid two-col">
+      <div class="panel notes">
+        <h3>Notes</h3>
+        <ul>
+          <li><b>Mole</b> — a counting unit for 6.022 × 10²³ particles (Avogadro's number)</li>
+          <li><b>Molar mass</b> — mass of one mole of a substance, in grams (numerically = atomic/molecular mass)</li>
+          <li><b>Molar volume</b> — one mole of <i>any</i> gas occupies 22.4 L at STP</li>
+        </ul>
+        <div class="callout analogy">
+          <span class="tag">✎ Think of it like…</span>
+          <p>A "dozen" for eggs, or a "ream" for paper (500 sheets). Atoms are far too small and numerous to count one by one — so chemists count them in one giant batch: the mole. Molar volume is like saying "a dozen tennis balls and a dozen golf balls both = 12 balls," except with gases, a mole of any gas fills the same 22.4 L box at STP because the particles themselves take up almost no space compared to the gaps between them.</p>
+        </div>
+        <div class="callout life">
+          <span class="tag">☕ Everyday life</span>
+          <p>A helium balloon, the CO₂ in a fizzy drink, the O₂ in a hospital cylinder — all measured in moles behind the scenes.</p>
+        </div>
+      </div>
+      <div class="panel sim-panel">
+        <h3>Mole converter</h3>
+        <label>Substance</label>
+        <select id="moleSubstance">
+          <option value="18|water|false">Water, H₂O (18 g/mol)</option>
+          <option value="44|carbon dioxide|true">Carbon dioxide, CO₂ (44 g/mol) — gas</option>
+          <option value="58.5|table salt|false">Table salt, NaCl (58.5 g/mol)</option>
+          <option value="32|oxygen gas|true">Oxygen, O₂ (32 g/mol) — gas</option>
+        </select>
+        <label>Mass (grams): <span class="mono" id="moleMassVal">18</span> g</label>
+        <input type="range" id="moleMass" min="0" max="200" value="18">
+        <div class="sim-out" id="moleOut"></div>
+      </div>
+    </div>
+    <div class="panel quiz-panel" id="quiz-4"></div>
+  </section>
+
+  <!-- ============ SECTION 5: FORMULAS ============ -->
+  <section class="topic" id="sec-5" style="--accent:var(--yellow)">
+    <div class="topic-head">
+      <div class="tile"><span class="num">05</span><div class="sym">Fo</div><div class="name">Formulas</div></div>
+      <div>
+        <h2>Empirical &amp; Molecular Formulas, Percentage Composition</h2>
+        <p class="deck">Reducing a compound to its simplest recipe — and then scaling it back up.</p>
+      </div>
+    </div>
+    <div class="grid two-col">
+      <div class="panel notes">
+        <h3>Notes</h3>
+        <ul>
+          <li><b>% composition</b> — mass % of each element in a compound</li>
+          <li><b>Empirical formula</b> — simplest whole-number ratio of atoms</li>
+          <li><b>Molecular formula</b> — the real number of atoms (a whole-number multiple of the empirical formula)</li>
+        </ul>
+        <div class="callout analogy">
+          <span class="tag">✎ Think of it like…</span>
+          <p>A recipe written as "2 cups flour : 1 cup sugar" instead of "8 cups flour : 4 cups sugar" — same ratio, simplest form. Glucose (C₆H₁₂O₆) is just the empirical formula CH₂O multiplied by 6 — the "full recipe" instead of the "reduced" one.</p>
+        </div>
+        <div class="callout life">
+          <span class="tag">☕ Everyday life</span>
+          <p>A fertilizer bag listing "20-10-10" (N-P-K) is percentage composition. A food label's "% Daily Value" works the same way.</p>
+        </div>
+      </div>
+      <div class="panel sim-panel">
+        <h3>Empirical formula finder (C, H, O only)</h3>
+        <label>Mass of Carbon (g): <span class="mono" id="fmCVal">40</span></label>
+        <input type="range" id="fmC" min="0" max="100" value="40">
+        <label>Mass of Hydrogen (g): <span class="mono" id="fmHVal">6.7</span></label>
+        <input type="range" id="fmH" min="0" max="20" value="6.7" step="0.1">
+        <label>Mass of Oxygen (g): <span class="mono" id="fmOVal">53.3</span></label>
+        <input type="range" id="fmO" min="0" max="100" value="53.3" step="0.1">
+        <div class="sim-out" id="fmOut"></div>
+        <label>Given molar mass of compound (g/mol), for molecular formula:</label>
+        <input type="number" id="fmMolar" value="180" style="max-width:140px;">
+        <div class="sim-out" id="fmMolOut"></div>
+      </div>
+    </div>
+    <div class="panel quiz-panel" id="quiz-5"></div>
+  </section>
+
+  <!-- ============ SECTION 6: STOICHIOMETRY ============ -->
+  <section class="topic" id="sec-6" style="--accent:var(--coral)">
+    <div class="topic-head">
+      <div class="tile"><span class="num">06</span><div class="sym">St</div><div class="name">Stoichiometry</div></div>
+      <div>
+        <h2>Basic Stoichiometric Calculations</h2>
+        <p class="deck">Using mole ratios from a balanced equation to predict how much product forms.</p>
+      </div>
+    </div>
+    <div class="grid two-col">
+      <div class="panel notes">
+        <h3>Notes</h3>
+        <ul>
+          <li>A balanced equation gives <b>mole ratios</b> between reactants and products</li>
+          <li>The <b>limiting reactant</b> runs out first and caps how much product can form</li>
+          <li>Whatever's left of the other reactant is the <b>excess</b></li>
+        </ul>
+        <div class="callout analogy">
+          <span class="tag">✎ Think of it like…</span>
+          <p>Making sandwiches: 2 bread slices + 1 cheese slice = 1 sandwich. With 10 bread slices but only 3 cheese slices, cheese runs out first — you can only make 3 sandwiches, and 4 bread slices sit unused. Cheese is the "limiting reactant."</p>
+        </div>
+        <div class="callout life">
+          <span class="tag">☕ Everyday life</span>
+          <p>Assembling furniture with a fixed number of screws, or baking a cake — you can only make as many batches as your scarcest ingredient allows.</p>
+        </div>
+      </div>
+      <div class="panel sim-panel">
+        <h3>Limiting reactant: N₂ + 3H₂ → 2NH₃</h3>
+        <label>Moles of N₂: <span class="mono" id="stoichN2Val">2</span></label>
+        <input type="range" id="stoichN2" min="0" max="10" value="2">
+        <label>Moles of H₂: <span class="mono" id="stoichH2Val">4</span></label>
+        <input type="range" id="stoichH2" min="0" max="30" value="4">
+        <div class="sim-out" id="stoichOut"></div>
+      </div>
+    </div>
+    <div class="panel quiz-panel" id="quiz-6"></div>
+  </section>
+
+</main>
+
+<footer>
+  Built as a study companion for Class IX Chemistry — Chapter 1: Fundamentals of Chemistry.<br>
+  Host this page on GitHub Pages: push it as <span class="mono">index.html</span> to a repo and enable Pages in Settings.
+</footer>
+
+<script>
+/* ================= NAV / TABS ================= */
+const sections = [
+  {id:'sec-1', code:'Br', accent:'var(--yellow)'},
+  {id:'sec-2', code:'Am', accent:'var(--coral)'},
+  {id:'sec-3', code:'Am²', accent:'var(--cyan)'},
+  {id:'sec-4', code:'Mo', accent:'var(--violet)'},
+  {id:'sec-5', code:'Fo', accent:'var(--yellow)'},
+  {id:'sec-6', code:'St', accent:'var(--coral)'},
+];
+const tabbar = document.getElementById('tabbar');
+sections.forEach((s,i)=>{
+  const el = document.createElement('div');
+  el.className = 'tab-tile';
+  el.style.setProperty('--accent', s.accent);
+  el.innerHTML = `<span class="num">0${i+1}</span><span class="code">${s.code}</span>`;
+  el.onclick = ()=>document.getElementById(s.id).scrollIntoView({behavior:'smooth'});
+  el.dataset.target = s.id;
+  tabbar.appendChild(el);
+});
+const tabTiles = [...tabbar.children];
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      tabTiles.forEach(t=>t.classList.remove('active'));
+      const tile = tabTiles.find(t=>t.dataset.target===e.target.id);
+      if(tile) tile.classList.add('active');
+    }
+  });
+},{rootMargin:'-40% 0px -50% 0px'});
+sections.forEach(s=>io.observe(document.getElementById(s.id)));
+
+/* ================= GENERIC QUIZ ENGINE ================= */
+function renderQuiz(containerId, questions){
+  const c = document.getElementById(containerId);
+  c.innerHTML = '<h3>Quick check</h3>';
+  questions.forEach((q,qi)=>{
+    const qDiv = document.createElement('div');
+    qDiv.className = 'qz-q';
+    qDiv.innerHTML = `<p class="qtext">${qi+1}. ${q.q}</p>`;
+    q.options.forEach((opt,oi)=>{
+      const optDiv = document.createElement('div');
+      optDiv.className = 'qz-opt';
+      optDiv.textContent = opt;
+      optDiv.onclick = ()=>{
+        if(qDiv.dataset.answered) return;
+        qDiv.dataset.answered = 'true';
+        [...qDiv.querySelectorAll('.qz-opt')].forEach((el,idx)=>{
+          if(idx===q.correct) el.classList.add('correct');
+          else if(idx===oi) el.classList.add('wrong');
+        });
+        const exp = qDiv.querySelector('.qz-exp');
+        exp.classList.add('show');
+        updateScore(containerId);
+      };
+      qDiv.appendChild(optDiv);
+    });
+    const exp = document.createElement('p');
+    exp.className = 'qz-exp';
+    exp.textContent = 'Why: ' + q.explain;
+    qDiv.appendChild(exp);
+    c.appendChild(qDiv);
+  });
+  const scoreDiv = document.createElement('div');
+  scoreDiv.className = 'qz-score';
+  scoreDiv.id = containerId+'-score';
+  c.appendChild(scoreDiv);
+  c.dataset.total = questions.length;
+}
+function updateScore(containerId){
+  const c = document.getElementById(containerId);
+  const answered = c.querySelectorAll('.qz-q[data-answered]').length;
+  const correct = c.querySelectorAll('.qz-opt.correct').length;
+  document.getElementById(containerId+'-score').textContent =
+    `Score: ${correct} / ${answered} answered (of ${c.dataset.total} total)`;
+}
+
+/* ---- Quiz data ---- */
+renderQuiz('quiz-1', [
+  {q:"Studying how fast a reaction happens and how much energy it releases falls under:", options:["Organic chemistry","Physical chemistry","Nuclear chemistry","Biochemistry"], correct:1, explain:"Reaction rates and energy changes are the core focus of physical chemistry."},
+  {q:"The chemistry happening inside your digestive system is:", options:["Industrial chemistry","Environmental chemistry","Biochemistry","Inorganic chemistry"], correct:2, explain:"Chemistry inside living organisms is biochemistry."},
+  {q:"Studying radioactive decay belongs to:", options:["Nuclear chemistry","Organic chemistry","Physical chemistry","Environmental chemistry"], correct:0, explain:"Reactions inside the atomic nucleus are the subject of nuclear chemistry."},
+  {q:"Large-scale manufacture of fertilizers is an example of:", options:["Industrial chemistry","Biochemistry","Nuclear chemistry","Organic chemistry"], correct:0, explain:"Factory-scale chemical production is industrial chemistry."},
+]);
+
+renderQuiz('quiz-2', [
+  {q:"An atom that has lost an electron becomes:", options:["A neutral atom","A molecule","An anion","A cation"], correct:3, explain:"Losing a negative electron leaves a net positive charge — a cation."},
+  {q:"O₂ is best described as:", options:["An ion","A molecule of one element","A cation","An atom"], correct:1, explain:"O₂ is two oxygen atoms of the same element bonded together — a molecule."},
+  {q:"Table salt (NaCl) is held together by:", options:["Neutral atoms only","Na⁺ and Cl⁻ ions","Two identical atoms","A single atom"], correct:1, explain:"Salt is composed of sodium cations and chloride anions."},
+  {q:"The smallest unit of an element that keeps that element's identity is:", options:["A molecule","An ion","An atom","A mixture"], correct:2, explain:"By definition, that's an atom."},
+]);
+
+renderQuiz('quiz-3', [
+  {q:"1 amu is defined as:", options:["The mass of one hydrogen atom","1/12 the mass of a carbon-12 atom","The mass of one mole of carbon","1 gram"], correct:1, explain:"The atomic mass unit is defined relative to carbon-12."},
+  {q:"Chlorine's relative atomic mass is 35.5 because:", options:["It's a measurement error","It's a mix of Cl-35 and Cl-37 isotopes","Chlorine has no isotopes","It's rounded incorrectly"], correct:1, explain:"It's the abundance-weighted average of its isotopes."},
+  {q:"Relative molecular mass of a compound is found by:", options:["Multiplying all atomic masses","Averaging the two heaviest atoms","Adding the relative atomic masses of all atoms in the molecule","Dividing molar mass by Avogadro's number"], correct:2, explain:"Molecular mass = sum of atomic masses of every atom present."},
+]);
+
+renderQuiz('quiz-4', [
+  {q:"One mole of any substance contains:", options:["22.4 particles","6.022 × 10²³ particles","12 particles","1 gram of particles"], correct:1, explain:"That's Avogadro's number, by definition of the mole."},
+  {q:"At STP, one mole of ANY gas occupies:", options:["1 litre","6.022 litres","22.4 litres","It depends on the gas's molar mass"], correct:2, explain:"Molar volume of any ideal gas at STP is 22.4 L, regardless of identity."},
+  {q:"The molar mass of water (H₂O) is closest to:", options:["16 g/mol","18 g/mol","2 g/mol","36 g/mol"], correct:1, explain:"2(1) + 16 = 18 g/mol."},
+  {q:"If you have 36 g of water, how many moles is that?", options:["1 mole","2 moles","0.5 moles","18 moles"], correct:1, explain:"36 g ÷ 18 g/mol = 2 mol."},
+]);
+
+renderQuiz('quiz-5', [
+  {q:"The empirical formula shows:", options:["The exact number of atoms in a molecule","The simplest whole-number ratio of atoms","Only the percentage of oxygen","The molar mass of a compound"], correct:1, explain:"Empirical = simplest ratio, not necessarily the true count."},
+  {q:"Glucose's molecular formula C₆H₁₂O₆ relates to its empirical formula CH₂O by a multiplier of:", options:["2","3","6","12"], correct:2, explain:"6 × CH₂O = C₆H₁₂O₆."},
+  {q:"Percentage composition tells you:", options:["The mass % of each element in a compound","The number of moles in a reaction","The rate of a reaction","The physical state of a substance"], correct:0, explain:"It's the mass contribution of each element, by percentage."},
+]);
+
+renderQuiz('quiz-6', [
+  {q:"In N₂ + 3H₂ → 2NH₃, if you have plenty of N₂ but run out of H₂ first, H₂ is called the:", options:["Excess reactant","Limiting reactant","Catalyst","Byproduct"], correct:1, explain:"Whichever reactant runs out first limits how much product can form."},
+  {q:"If 2 mol N₂ reacts completely with enough H₂, how many mol of NH₃ form?", options:["2 mol","4 mol","6 mol","1 mol"], correct:1, explain:"Mole ratio N₂:NH₃ is 1:2, so 2 mol N₂ → 4 mol NH₃."},
+  {q:"Leftover reactant after a reaction finishes is called the:", options:["Limiting reactant","Product","Excess reactant","Catalyst"], correct:2, explain:"Whatever remains unused is in excess."},
+]);
+
+/* ================= BRANCHES SIMULATION ================= */
+const branches = [
+  {name:'Organic', detail:'Carbon-based compounds: fuels, plastics, medicines.'},
+  {name:'Inorganic', detail:'Metals, minerals, salts — the non-carbon world.'},
+  {name:'Physical', detail:'Energy changes, reaction rates, why reactions happen.'},
+  {name:'Biochemistry', detail:'Chemistry inside living organisms: digestion, DNA.'},
+  {name:'Industrial', detail:'Chemistry scaled up to factories and manufacturing.'},
+  {name:'Nuclear', detail:'Reactions inside the atomic nucleus: radioactivity.'},
+  {name:'Environmental', detail:'Chemistry of air, water, soil and pollution.'},
+];
+const branchGrid = document.getElementById('branchGrid');
+branches.forEach(b=>{
+  const t = document.createElement('div');
+  t.className = 'branch-tile';
+  t.innerHTML = `<div class="b-name">${b.name}</div><div class="b-detail">${b.detail}</div>`;
+  t.onclick = ()=>t.classList.toggle('open');
+  branchGrid.appendChild(t);
+});
+const branchSel = document.getElementById('branchAnswer');
+branches.forEach((b,i)=>{
+  const opt = document.createElement('option');
+  opt.value = i; opt.textContent = b.name;
+  branchSel.appendChild(opt);
+});
+const scenarios = [
+  {text:"Figuring out why a car battery produces electricity.", answer:'Inorganic'},
+  {text:"Studying how fast milk turns sour.", answer:'Physical'},
+  {text:"Designing a new painkiller molecule.", answer:'Organic'},
+  {text:"Explaining how a plant converts sunlight into sugar inside its cells.", answer:'Biochemistry'},
+  {text:"Setting up a large plant to produce urea fertilizer.", answer:'Industrial'},
+  {text:"Investigating radiation used in a cancer treatment.", answer:'Nuclear'},
+  {text:"Measuring pollutants in river water.", answer:'Environmental'},
+];
+let currentScenario = null;
+function newBranchScenario(){
+  currentScenario = scenarios[Math.floor(Math.random()*scenarios.length)];
+  document.getElementById('branchScenario').textContent = currentScenario.text;
+  document.getElementById('branchFeedback').textContent = '';
+}
+function checkBranch(){
+  if(!currentScenario) return;
+  const chosen = branches[parseInt(branchSel.value)].name;
+  const fb = document.getElementById('branchFeedback');
+  if(chosen === currentScenario.answer){
+    fb.style.color = 'var(--good)';
+    fb.textContent = `Correct — that's ${currentScenario.answer} chemistry.`;
+  } else {
+    fb.style.color = 'var(--bad)';
+    fb.textContent = `Not quite — that's actually ${currentScenario.answer} chemistry.`;
+  }
+}
+newBranchScenario();
+
+/* ================= ATOM BUILDER ================= */
+const elementNames = ['H','He','Li','Be','B','C','N','O','F','Ne','Na','Mg','Al','Si','P','S','Cl','Ar','K','Ca'];
+const pSlider = document.getElementById('pSlider'), nSlider = document.getElementById('nSlider'), eSlider = document.getElementById('eSlider');
+const pVal = document.getElementById('pVal'), nVal = document.getElementById('nVal'), eVal = document.getElementById('eVal');
+function drawAtom(p,e){
+  const svg = document.getElementById('atomSvg');
+  let shells = [];
+  let remaining = e;
+  const capacities = [2,8,8,2]; // simplified for first 20 elements
+  capacities.forEach(cap=>{
+    if(remaining<=0) return;
+    const inShell = Math.min(cap, remaining);
+    shells.push(inShell);
+    remaining -= inShell;
+  });
+  let svgContent = `<circle cx="110" cy="90" r="12" fill="var(--accent)" />`;
+  shells.forEach((count, idx)=>{
+    const radius = 30 + idx*28;
+    svgContent += `<circle cx="110" cy="90" r="${radius}" fill="none" stroke="var(--rule)" stroke-dasharray="3,3" />`;
+    for(let i=0;i<count;i++){
+      const angle = (2*Math.PI/count)*i;
+      const x = 110 + radius*Math.cos(angle);
+      const y = 90 + radius*Math.sin(angle);
+      svgContent += `<circle cx="${x}" cy="${y}" r="4.5" fill="var(--cyan)" />`;
+    }
+  });
+  svg.innerHTML = svgContent;
+}
+function updateAtom(){
+  const p = parseInt(pSlider.value), n = parseInt(nSlider.value), e = parseInt(eSlider.value);
+  pVal.textContent = p; nVal.textContent = n; eVal.textContent = e;
+  const mass = p+n;
+  const charge = p-e;
+  const elName = elementNames[p-1] || '?';
+  let particleType = 'Neutral atom';
+  if(charge>0) particleType = `Cation (charge +${charge})`;
+  else if(charge<0) particleType = `Anion (charge ${charge})`;
+  document.getElementById('atomOut').innerHTML =
+`Element: <span class="big-readout">${elName}</span>
+Atomic number (protons): ${p}
+Mass number (p + n): ${mass}
+Net charge: ${charge>0?'+':''}${charge}
+Result: ${particleType}`;
+  drawAtom(p,e);
+}
+[pSlider,nSlider,eSlider].forEach(s=>s.addEventListener('input', updateAtom));
+updateAtom();
+
+/* ================= ISOTOPE MIXER ================= */
+const isoAMass = document.getElementById('isoAMass'), isoBMass = document.getElementById('isoBMass'), isoAbund = document.getElementById('isoAbund');
+function updateIso(){
+  const mA = parseFloat(isoAMass.value), mB = parseFloat(isoBMass.value), abA = parseFloat(isoAbund.value);
+  const abB = 100-abA;
+  document.getElementById('isoAMassVal').textContent = mA;
+  document.getElementById('isoBMassVal').textContent = mB;
+  document.getElementById('isoAbundVal').textContent = abA;
+  document.getElementById('isoBarA').style.width = abA+'%';
+  document.getElementById('isoBarB').style.width = abB+'%';
+  const avg = (mA*abA + mB*abB)/100;
+  document.getElementById('isoOut').innerHTML =
+`(${mA} × ${abA}% ) + (${mB} × ${abB}%)
+= Relative atomic mass ≈ <span class="big-readout">${avg.toFixed(2)}</span>`;
+}
+[isoAMass,isoBMass,isoAbund].forEach(s=>s.addEventListener('input', updateIso));
+updateIso();
+
+/* ================= MOLE CONVERTER ================= */
+const moleSubstance = document.getElementById('moleSubstance'), moleMass = document.getElementById('moleMass');
+function updateMole(){
+  const [molarMass, name, isGas] = moleSubstance.value.split('|');
+  const mm = parseFloat(molarMass);
+  const mass = parseFloat(moleMass.value);
+  document.getElementById('moleMassVal').textContent = mass;
+  const moles = mass/mm;
+  const particles = moles * 6.022e23;
+  let out = `Substance: ${name}
+Molar mass: ${mm} g/mol
+Mass used: ${mass} g
+
+Moles = mass ÷ molar mass = ${mass} ÷ ${mm}
+Moles ≈ <span class="big-readout">${moles.toFixed(3)} mol</span>
+
+Number of particles ≈ ${particles.toExponential(3)}`;
+  if(isGas === 'true'){
+    const volume = moles*22.4;
+    out += `\nVolume at STP ≈ ${volume.toFixed(2)} L  (moles × 22.4 L/mol)`;
+  }
+  document.getElementById('moleOut').innerHTML = out;
+}
+moleSubstance.addEventListener('change', updateMole);
+moleMass.addEventListener('input', updateMole);
+updateMole();
+
+/* ================= FORMULA FINDER ================= */
+const fmC = document.getElementById('fmC'), fmH = document.getElementById('fmH'), fmO = document.getElementById('fmO');
+const fmMolar = document.getElementById('fmMolar');
+function updateFormula(){
+  const gC = parseFloat(fmC.value), gH = parseFloat(fmH.value), gO = parseFloat(fmO.value);
+  document.getElementById('fmCVal').textContent = gC;
+  document.getElementById('fmHVal').textContent = gH;
+  document.getElementById('fmOVal').textContent = gO;
+  const total = gC+gH+gO || 1;
+  const molC = gC/12.0, molH = gH/1.0, molO = gO/16.0;
+  const smallest = Math.min(molC||Infinity, molH||Infinity, molO||Infinity) || 1;
+  const rC = molC/smallest, rH = molH/smallest, rO = molO/smallest;
+  const empiricalMass = rC*12 + rH*1 + rO*16;
+  document.getElementById('fmOut').innerHTML =
+`% C = ${(gC/total*100).toFixed(1)}%   % H = ${(gH/total*100).toFixed(1)}%   % O = ${(gO/total*100).toFixed(1)}%
+
+Moles:  C=${molC.toFixed(3)}  H=${molH.toFixed(3)}  O=${molO.toFixed(3)}
+Divide by smallest (${smallest.toFixed(3)}):
+Ratio → C:${rC.toFixed(2)}  H:${rH.toFixed(2)}  O:${rO.toFixed(2)}
+
+Empirical formula ≈ <span class="big-readout">C${rC.toFixed(1)}H${rH.toFixed(1)}O${rO.toFixed(1)}</span>
+Empirical formula mass ≈ ${empiricalMass.toFixed(1)} g/mol`;
+
+  const molarMass = parseFloat(fmMolar.value) || 0;
+  if(molarMass>0){
+    const n = molarMass/empiricalMass;
+    document.getElementById('fmMolOut').innerHTML =
+`n = molar mass ÷ empirical mass = ${molarMass} ÷ ${empiricalMass.toFixed(1)} ≈ ${n.toFixed(2)}
+Molecular formula ≈ <span class="big-readout">C${(rC*n).toFixed(1)}H${(rH*n).toFixed(1)}O${(rO*n).toFixed(1)}</span>`;
+  }
+}
+[fmC,fmH,fmO,fmMolar].forEach(s=>s.addEventListener('input', updateFormula));
+updateFormula();
+
+/* ================= STOICHIOMETRY SIM ================= */
+const stoichN2 = document.getElementById('stoichN2'), stoichH2 = document.getElementById('stoichH2');
+function updateStoich(){
+  const n2 = parseFloat(stoichN2.value), h2 = parseFloat(stoichH2.value);
+  document.getElementById('stoichN2Val').textContent = n2;
+  document.getElementById('stoichH2Val').textContent = h2;
+  const h2Needed = n2*3;
+  const n2Needed = h2/3;
+  let limiting, nh3, leftoverN2=0, leftoverH2=0;
+  if(h2 < h2Needed){
+    limiting = 'H₂';
+    nh3 = (h2/3)*2;
+    leftoverN2 = n2 - h2/3;
+  } else {
+    limiting = 'N₂';
+    nh3 = n2*2;
+    leftoverH2 = h2 - h2Needed;
+  }
+  document.getElementById('stoichOut').innerHTML =
+`N₂ available: ${n2} mol      H₂ available: ${h2} mol
+H₂ needed for all N₂: ${h2Needed} mol
+
+Limiting reactant: <span class="big-readout">${limiting}</span>
+NH₃ produced: ${nh3.toFixed(2)} mol
+Leftover N₂: ${leftoverN2.toFixed(2)} mol      Leftover H₂: ${leftoverH2.toFixed(2)} mol`;
+}
+[stoichN2,stoichH2].forEach(s=>s.addEventListener('input', updateStoich));
+updateStoich();
+</script>
+</body>
+</html>
