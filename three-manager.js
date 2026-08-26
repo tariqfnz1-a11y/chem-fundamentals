@@ -1,5 +1,4 @@
-// three-manager.js – Reusable Three.js scene manager
-
+// three-manager.js – Optimised
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -17,25 +16,17 @@ export class ThreeManager {
         this.intervals = [];
     }
 
-    /**
-     * Initialise the 3D scene inside the given container.
-     * @param {string} containerId – DOM id of the container element.
-     * @param {Function} builderFn – function(scene, userData, segments, manager) to add custom objects.
-     * @param {Object} options – { segments: number } for geometry quality.
-     * @returns {boolean} – true if success.
-     */
     init(containerId, builderFn, options = {}) {
         try {
             const container = document.getElementById(containerId);
             if (!container) throw new Error(`Container #${containerId} not found.`);
             this.container = container;
 
-            // Show spinner if present
             const spinner = container.querySelector('.spinner');
             if (spinner) spinner.style.display = 'flex';
 
-            // Use lower polygon count by default (performance)
-            const segments = options.segments || 12;
+            // Default segments lowered to 8 for performance
+            const segments = options.segments || 8;
 
             const w = container.clientWidth || 400;
             const h = container.clientHeight || 300;
@@ -74,9 +65,9 @@ export class ThreeManager {
             fill.position.set(-10, 0, 5);
             scene.add(fill);
 
-            // Stars background (low poly points)
+            // Stars – reduced count
             const starsGeo = new THREE.BufferGeometry();
-            const starsCount = 300;
+            const starsCount = 200;
             const starPos = new Float32Array(starsCount * 3);
             for (let i = 0; i < starsCount * 3; i++) {
                 starPos[i] = (Math.random() - 0.5) * 80;
@@ -84,18 +75,16 @@ export class ThreeManager {
             starsGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
             const starsMat = new THREE.PointsMaterial({
                 color: 0x8888ff,
-                size: 0.06,
+                size: 0.05,
                 transparent: true,
             });
             const stars = new THREE.Points(starsGeo, starsMat);
             scene.add(stars);
 
-            // Build custom content; pass segments and manager reference
             if (typeof builderFn === 'function') {
                 builderFn(scene, this.userData, segments, this);
             }
 
-            // Hide spinner
             if (spinner) spinner.style.display = 'none';
 
             this.active = true;
@@ -107,30 +96,22 @@ export class ThreeManager {
             if (container) {
                 const spinner = container.querySelector('.spinner');
                 if (spinner) spinner.style.display = 'none';
-                container.innerHTML = `<div style="color:#f87171;padding:20px;text-align:center;">⚠️ 3D scene could not load. Check console.</div>`;
+                container.innerHTML = `<div style="color:#f87171;padding:20px;text-align:center;">⚠️ 3D scene could not load.</div>`;
             }
             return false;
         }
     }
 
-    /**
-     * Main animation loop – called automatically.
-     * Pauses if this.paused is true.
-     */
     animate() {
         if (!this.active || this.paused) {
-            // Keep the loop running even when paused (so we can resume later)
             this.animId = requestAnimationFrame(() => this.animate());
             return;
         }
         this.animId = requestAnimationFrame(() => this.animate());
 
-        // Rotate main group if present
         if (this.userData.group) {
             this.userData.group.rotation.y += 0.005;
         }
-
-        // Custom update hook (e.g., for particles)
         if (this.userData.update) {
             this.userData.update();
         }
@@ -139,17 +120,9 @@ export class ThreeManager {
         this.renderer.render(this.scene, this.camera);
     }
 
-    /** Pause the animation loop (saves CPU when tab is hidden). */
-    pause() {
-        this.paused = true;
-    }
+    pause() { this.paused = true; }
+    resume() { this.paused = false; }
 
-    /** Resume the animation loop. */
-    resume() {
-        this.paused = false;
-    }
-
-    /** Resize renderer and camera when container changes size. */
     resize() {
         if (!this.container || !this.renderer || !this.camera) return;
         const w = this.container.clientWidth;
@@ -159,25 +132,17 @@ export class ThreeManager {
         this.camera.updateProjectionMatrix();
     }
 
-    /**
-     * Register an interval that will be automatically cleared on dispose.
-     * @param {Function} fn – function to execute.
-     * @param {number} ms – milliseconds between executions.
-     * @returns {number} – interval ID.
-     */
     addInterval(fn, ms) {
         const id = setInterval(fn, ms);
         this.intervals.push(id);
         return id;
     }
 
-    /** Clear all registered intervals. */
     clearIntervals() {
-        this.intervals.forEach((id) => clearInterval(id));
+        this.intervals.forEach(id => clearInterval(id));
         this.intervals = [];
     }
 
-    /** Completely dispose the scene, renderer, controls, and intervals. */
     dispose() {
         this.active = false;
         if (this.animId) {
@@ -199,7 +164,6 @@ export class ThreeManager {
             this.renderer = null;
         }
 
-        // Clear scene (optional – Three.js will garbage collect)
         if (this.scene) {
             this.scene.clear();
             this.scene = null;
