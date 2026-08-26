@@ -1,3 +1,5 @@
+// app.js – Main application logic with all enhancements
+
 import { stationData } from './data.js';
 import { ThreeManager } from './three-manager.js';
 import { simulationBuilders, init2DParticles } from './simulations.js';
